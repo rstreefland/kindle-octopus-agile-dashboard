@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agile Electricity Prices</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@^4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
+    <script src="
+https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js
+"></script>
+    <style>
+        #battery {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 16px;
+            font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif,serif;
+        }
+
+        #lastUpdated {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 16px;
+            font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif,serif;
+        }
+
+        #errorMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px;
+            text-align: center;
+            font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif,serif;
+        }
+    </style>
+</head>
+<body>
+<canvas id="lineChart" width="800" height="600"></canvas>
+<div id="battery"></div>
+<div id="lastUpdated"></div>
+<div id="errorMessage"></div>
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const octopusApiKey = urlParams.get('octopusApiKey');
+
+    // Fetch the rates from the octopus api.
+    // The tariff is hardcoded to the one for my region, change it if yours is different.
+    fetch('https://api.octopus.energy/v1/products/AGILE-FLEX-22-11-25/electricity-tariffs/E-1R-AGILE-FLEX-22-11-25-J/standard-unit-rates/', {
+        headers: {
+            Authorization: `Bearer ${btoa(`${octopusApiKey}:`)}`
+        }
+    })
+        .then(response => response.json())
+        .then((data) => {
+            // Only show future rates
+            return data.results.filter((rate) => {
+                return moment(rate.valid_to) >= moment()
+            });
+        })
+        .then((rates) => {
+            // Produce the arrays expected by the Chart.js library
+            const labels = rates.map(item => moment(item.valid_from))
+            const unitRates = rates.map(item => item.value_inc_vat);
+
+            // Find the current rate
+            const currentRate = rates.find((rate) => {
+                return moment() >= moment(rate.valid_from) && moment() < moment(rate.valid_to)
+            }).value_inc_vat
+
+            // Calculate the average rate
+            const averageRate = rates.reduce((avg, rate, _, { length }) => {
+                return avg + rate.value_inc_vat / length;
+            }, 0);
+
+            // Find the cheapest rate and turn it into a string for display
+            const cheapestRate = rates.reduce((cheapestRate, rate) => {
+                return rate.value_inc_vat < cheapestRate.value_inc_vat ? rate : cheapestRate;
+            }, rates[0]);
+            const cheapestRateString = `${moment(cheapestRate.valid_from).format('HH:mm')} - ${moment(cheapestRate.valid_to).format('HH:mm')} (${cheapestRate.value_inc_vat.toFixed(2)}p)`
+
+            Chart.defaults.color = '#000'; // The library defaults to grayscale which doesn't contrast as well on a kindle display
+            const ctx = document.getElementById('lineChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Unit Rates',
+                        data: unitRates,
+                        borderColor: 'black',
+                        fill: true,
+                        stepped: 'after',
+                        pointRadius: 0,
+                        color: 'black',
+                    }]
+                },
+                options: {
+                    animation: false, // Not needed to generate an image
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Current rate: ${currentRate.toFixed(2)}p`,
+                            font: {
+                                size: 34,
+                                weight: "bold"
+                            },
+                            padding: {
+                                top: 5,
+                                bottom: 5,
+                            },
+                        },
+                        subtitle: {
+                            display: true,
+                            text: `Cheapest upcoming rate: ${cheapestRateString}`,
+                            font: {
+                                size: 24,
+                            },
+                            padding: {
+                                top: 5,
+                                bottom: 10,
+                            },
+                        },
+                        legend: {
+                            display: false
+                        },
+                        annotation: {
+                            annotations: {
+                                // Line for the current ofgem price cap in my region. This is just hardcoded and needs to be updated manually
+                                priceCap: {
+                                    type: 'line',
+                                    yMin: 31.72,
+                                    yMax: 31.72,
+                                    borderColor: 'black',
+                                    borderWidth: 2,
+                                    label: {
+                                        content: 'Price cap',
+                                        display: true,
+                                        position: 'end',
+                                        backgroundColor: '#fff',
+                                        borderWidth: 2,
+                                        borderColor: '#000',
+                                        color: '#000'
+                                    },
+                                },
+                                // Line for the average of all the upcoming rates
+                                average: {
+                                    type: 'line',
+                                    yMin: averageRate,
+                                    yMax: averageRate,
+                                    borderColor: 'black',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5], // Set the border dash pattern (5 pixels dashed, 5 pixels gap),
+                                    label: {
+                                        content: 'Average',
+                                        display: true,
+                                        position: 'end',
+                                        backgroundColor: '#fff',
+                                        borderWidth: 2,
+                                        borderColor: '#000',
+                                        color: '#000'
+                                    },
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            offset: true,
+                            ticks: {
+                                // Ensures the ticks are half an hour intervals to match the rates from Octopus
+                                source: "data",
+                                round: "hour"
+                            },
+                            time: {
+                                // Forces a 24-hour time format for the x-axis
+                                displayFormats: {
+                                    millisecond: 'HH:mm:ss.SSS',
+                                    second: 'HH:mm:ss',
+                                    minute: 'HH:mm',
+                                    hour: 'HH:mm'
+                                }
+                            },
+                        },
+                        y: {
+                            suggestedMin: 0,
+                            ticks: {
+                                // Append pence (p) to y-axis
+                                callback: function(value) {
+                                    return value + 'p';
+                                }
+                            },
+                        }
+                    },
+                },
+            });
+
+            // Set last updated timestamp
+            const lastUpdatedDiv = document.getElementById('lastUpdated');
+            const now = moment().format('HH:mm:ss');
+            lastUpdatedDiv.innerHTML = `Last updated: ${now}`;
+
+            // Set battery percentage
+            const batteryDiv  = document.getElementById('battery');
+            const batteryPercentage = urlParams.get('batteryPercentage');
+            if (batteryPercentage) {
+                batteryDiv.innerHTML = `${batteryPercentage}%`;
+            }
+        })
+        .catch(error => {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = `<h1>Failed to render dashboard</h1><br><h3>Error: ${error.message}</h3>`;
+            console.error(error);
+        });
+</script>
+</body>
+</html>
