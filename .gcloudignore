@@ -12,5 +12,8 @@
 # below:
 .git
 .gitignore
+README.MD
+docs
+kindle
 
 node_modules
