@@ -38,6 +38,8 @@ This solution relies on technique and code from https://github.com/pascalw/kindl
 
 Change the [tariff in the URL](https://github.com/rstreefland/kindle-octopus-agile-dashboard/blob/main/index.html#L50)https://github.com/rstreefland/kindle-octopus-agile-dashboard/blob/main/index.html#L50 to the one appropriate for your region if needed. If you wish to see your changes to the dashboard, it can be opened in a web browser. Append the query parameter to the URL `?batteryPercentage=100` to simulate a battery percentage.
 
+The Ofgem price cap is currently hardcoded. Update [OFGEM_PRICE_CAP](https://github.com/rstreefland/kindle-octopus-agile-dashboard/blob/main/index.html#L53) as necessary.
+
 ### Node.js endpoint ([index.js](https://github.com/rstreefland/kindle-octopus-agile-dashboard/blob/main/index.js))
 
 This endpoint will deploy as a Google Cloud Function using the [gcloud CLI](https://cloud.google.com/sdk/gcloud) out of the box but it will also deploy to any environment capable of hosting node.js services.
