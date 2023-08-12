@@ -43,15 +43,13 @@ https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin
 <div id="errorMessage"></div>
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const octopusApiKey = urlParams.get('octopusApiKey');
 
     // Fetch the rates from the octopus api.
     // The tariff is hardcoded to the one for my region, change it if yours is different.
-    fetch('https://api.octopus.energy/v1/products/AGILE-FLEX-22-11-25/electricity-tariffs/E-1R-AGILE-FLEX-22-11-25-J/standard-unit-rates/', {
-        headers: {
-            Authorization: `Bearer ${btoa(`${octopusApiKey}:`)}`
-        }
-    })
+    const PRODUCT_CODE = 'AGILE-FLEX-22-11-25';
+    const TARIFF_CODE = 'E-1R-AGILE-FLEX-22-11-25-J';
+
+    fetch(`https://api.octopus.energy/v1/products/${PRODUCT_CODE}/electricity-tariffs/${TARIFF_CODE}/standard-unit-rates/`)
         .then(response => response.json())
         .then((data) => {
             // Only show future rates

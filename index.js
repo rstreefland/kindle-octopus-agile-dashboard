@@ -3,12 +3,6 @@ const functions = require('@google-cloud/functions-framework');
 const Jimp = require("jimp");
 
 functions.http('renderDashboard', async(req, res) => {
-    const octopusApiKey = process.env.OCTOPUS_API_KEY;
-
-    if (!octopusApiKey) {
-        return res.status(500).send("Missing required OCTOPUS_API_KEY environment variable")
-    }
-
     const token = process.env.TOKEN;
 
     if (!token) {
