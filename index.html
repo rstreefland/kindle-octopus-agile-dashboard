@@ -49,6 +49,9 @@ https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin
     const PRODUCT_CODE = 'AGILE-FLEX-22-11-25';
     const TARIFF_CODE = 'E-1R-AGILE-FLEX-22-11-25-J';
 
+    // Update this as required.
+    const OFGEM_PRICE_CAP = 31.72;
+
     fetch(`https://api.octopus.energy/v1/products/${PRODUCT_CODE}/electricity-tariffs/${TARIFF_CODE}/standard-unit-rates/`)
         .then(response => response.json())
         .then((data) => {
@@ -128,8 +131,8 @@ https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin
                                 // Line for the current ofgem price cap in my region. This is just hardcoded and needs to be updated manually
                                 priceCap: {
                                     type: 'line',
-                                    yMin: 31.72,
-                                    yMax: 31.72,
+                                    yMin: OFGEM_PRICE_CAP,
+                                    yMax: OFGEM_PRICE_CAP,
                                     borderColor: 'black',
                                     borderWidth: 2,
                                     label: {
